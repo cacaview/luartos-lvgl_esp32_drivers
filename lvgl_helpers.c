@@ -102,6 +102,7 @@ void lvgl_driver_init(void)
     ESP_LOGI(TAG, "使用SPI协议初始化显示控制器");
     ESP_LOGI(TAG, "SPI主机: %d", TFT_SPI_HOST);
     ESP_LOGI(TAG, "SPI引脚配置 - MISO: %d, MOSI: %d, CLK: %d", DISP_SPI_MISO, DISP_SPI_MOSI, DISP_SPI_CLK);
+    ESP_LOGI(TAG, "SPI最大传输大小: %d 字节 (%.1f KB)", SPI_BUS_MAX_TRANSFER_SZ, SPI_BUS_MAX_TRANSFER_SZ / 1024.0);
 
     bool spi_init_result = lvgl_spi_driver_init(TFT_SPI_HOST,
         DISP_SPI_MISO, DISP_SPI_MOSI, DISP_SPI_CLK,

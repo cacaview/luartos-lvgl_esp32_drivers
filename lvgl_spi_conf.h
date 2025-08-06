@@ -117,7 +117,10 @@ extern "C" {
 #if defined (CONFIG_LV_TFT_DISPLAY_CONTROLLER_ILI9481) || \
     defined (CONFIG_LV_TFT_DISPLAY_CONTROLLER_ILI9488)
 
-#define SPI_BUS_MAX_TRANSFER_SZ (DISP_BUF_SIZE * 3)
+// Reduce transfer size for ESP32-S3 hardware compatibility
+// Original: DISP_BUF_SIZE * 3, which could be 480*40*3 = 57.6KB
+// Hardware limit is typically around 32KB, so we cap it at 16KB
+#define SPI_BUS_MAX_TRANSFER_SZ (16 * 1024)  // 16KB max for hardware compatibility
 
 #elif defined (CONFIG_LV_TFT_DISPLAY_CONTROLLER_ILI9341)  || \
       defined (CONFIG_LV_TFT_DISPLAY_CONTROLLER_ST7789)   || \
@@ -129,10 +132,11 @@ extern "C" {
       defined (CONFIG_LV_TFT_DISPLAY_CONTROLLER_JD79653A) || \
       defined (CONFIG_LV_TFT_DISPLAY_CONTROLLER_ILI9163C)
 
-#define SPI_BUS_MAX_TRANSFER_SZ (DISP_BUF_SIZE * 2)
+// Also cap other controllers to prevent hardware overflow
+#define SPI_BUS_MAX_TRANSFER_SZ (16 * 1024)  // 16KB max for hardware compatibility
 
 #else
-#define SPI_BUS_MAX_TRANSFER_SZ (DISP_BUF_SIZE * 2)
+#define SPI_BUS_MAX_TRANSFER_SZ (16 * 1024)  // 16KB default for all controllers
 #endif
 
 #if defined (CONFIG_LV_TFT_USE_CUSTOM_SPI_CLK_DIVIDER)

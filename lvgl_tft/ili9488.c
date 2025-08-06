@@ -38,7 +38,7 @@ static void ili9488_set_orientation(uint8_t orientation);
 
 static void ili9488_send_cmd(uint8_t cmd);
 static void ili9488_send_data(void * data, uint16_t length);
-static void ili9488_send_color(void * data, uint16_t length);
+static void ili9488_send_color(void * data, size_t length);  // 修改为size_t以支持大数据块
 
 /**********************
  *  STATIC VARIABLES
@@ -237,7 +237,7 @@ void ili9488_flush(lv_disp_drv_t * drv, const lv_area_t * area, lv_color_t * col
 	ili9488_send_cmd(ILI9488_CMD_MEMORY_WRITE);
 
 	if (flush_count <= 5) {
-	    ESP_LOGD(TAG, "开始发送色彩数据，字节数: %d", size * 3);
+	    ESP_LOGI(TAG, "开始发送色彩数据，总字节数: %zu，将分块传输", size * 3);
 	}
 	ili9488_send_color((void *) mybuf, size * 3);
 	heap_caps_free(mybuf);
@@ -266,11 +266,46 @@ static void ili9488_send_data(void * data, uint16_t length)
     disp_spi_send_data(data, length);
 }
 
-static void ili9488_send_color(void * data, uint16_t length)
+static void ili9488_send_color(void * data, size_t length)
 {
     disp_wait_for_pending_transactions();
     gpio_set_level(ILI9488_DC, 1);   /*Data mode*/
-    disp_spi_send_colors(data, length);
+    
+    // 实现分块传输以避免超出SPI硬件限制
+    const size_t MAX_CHUNK_SIZE = 8192;  // 8KB 块大小，安全值
+    uint8_t *data_ptr = (uint8_t *)data;
+    size_t remaining = length;
+    size_t sent = 0;
+    uint32_t chunk_count = 0;
+    
+    // 如果数据较大，打印分块信息
+    if (length > MAX_CHUNK_SIZE) {
+        ESP_LOGI(TAG, "数据大小 %zu 字节超过限制，将分为 %zu 个块传输", 
+                 length, (length + MAX_CHUNK_SIZE - 1) / MAX_CHUNK_SIZE);
+    }
+    
+    while (remaining > 0) {
+        size_t chunk_size = (remaining > MAX_CHUNK_SIZE) ? MAX_CHUNK_SIZE : remaining;
+        chunk_count++;
+        
+        if (length > MAX_CHUNK_SIZE) {
+            ESP_LOGD(TAG, "发送第 %d 块: %zu 字节 (剩余: %zu)", chunk_count, chunk_size, remaining - chunk_size);
+        }
+        
+        disp_spi_send_colors(data_ptr + sent, chunk_size);
+        
+        sent += chunk_size;
+        remaining -= chunk_size;
+        
+        // 如果还有数据要发送，等待当前传输完成
+        if (remaining > 0) {
+            disp_wait_for_pending_transactions();
+        }
+    }
+    
+    if (length > MAX_CHUNK_SIZE) {
+        ESP_LOGI(TAG, "分块传输完成，共发送 %d 块，总计 %zu 字节", chunk_count, length);
+    }
 }
 
 static void ili9488_set_orientation(uint8_t orientation)
