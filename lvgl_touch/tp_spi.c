@@ -59,7 +59,7 @@ void tp_spi_add_device(spi_host_device_t host)
 		.command_bits = 8,
 		.address_bits = 0,
 		.dummy_bits = 0,
-		.flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_NO_DUMMY,
+		.flags = SPI_DEVICE_NO_DUMMY,
 	};
 	
 	//Attach the Touch controller to the SPI bus
@@ -91,17 +91,28 @@ void tp_spi_write_reg(uint8_t* data, uint8_t byte_count)
 
 void tp_spi_read_reg(uint8_t reg, uint8_t* data, uint8_t byte_count)
 {
+	uint8_t tx_data[byte_count + 1];
+	uint8_t rx_data[byte_count + 1];
+	
+	tx_data[0] = reg;
+	for(int i = 1; i <= byte_count; i++) {
+		tx_data[i] = 0; // Send dummy bytes
+	}
+	
 	spi_transaction_t t = {	
-	    .length = (byte_count + sizeof(reg)) * 8,
-	    .rxlength = byte_count * 8,
-	    .cmd = reg,
-	    .rx_buffer = data,
+	    .length = (byte_count + 1) * 8,
+	    .tx_buffer = tx_data,
+	    .rx_buffer = rx_data,
 	    .flags = 0
 	};
 	
-	// Read - send first byte as command
 	esp_err_t ret = spi_device_transmit(spi, &t);
 	assert(ret == ESP_OK);
+	
+	// Copy received data (skip the first byte which is the command echo)
+	for(int i = 0; i < byte_count; i++) {
+		data[i] = rx_data[i + 1];
+	}
 }
 
 /**********************

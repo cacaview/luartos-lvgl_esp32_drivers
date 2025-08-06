@@ -52,13 +52,15 @@
 /* Interface and driver initialization */
 void lvgl_driver_init(void)
 {
+    ESP_LOGI(TAG, "开始初始化LVGL驱动程序...");
+    
     /* Since LVGL v8 LV_HOR_RES_MAX and LV_VER_RES_MAX are not defined, so
      * print it only if they are defined. */
 #if (LVGL_VERSION_MAJOR < 8)
     ESP_LOGI(TAG, "Display hor size: %d, ver size: %d", LV_HOR_RES_MAX, LV_VER_RES_MAX);
 #endif
 
-    ESP_LOGI(TAG, "Display buffer size: %d", DISP_BUF_SIZE);
+    ESP_LOGI(TAG, "Display buffer size: %d bytes", DISP_BUF_SIZE);
 
 #if defined (CONFIG_LV_TFT_DISPLAY_CONTROLLER_FT81X)
     ESP_LOGI(TAG, "Initializing SPI master for FT81X");
@@ -97,17 +99,30 @@ void lvgl_driver_init(void)
 
 /* Display controller initialization */
 #if defined CONFIG_LV_TFT_DISPLAY_PROTOCOL_SPI
-    ESP_LOGI(TAG, "Initializing SPI master for display");
+    ESP_LOGI(TAG, "使用SPI协议初始化显示控制器");
+    ESP_LOGI(TAG, "SPI主机: %d", TFT_SPI_HOST);
+    ESP_LOGI(TAG, "SPI引脚配置 - MISO: %d, MOSI: %d, CLK: %d", DISP_SPI_MISO, DISP_SPI_MOSI, DISP_SPI_CLK);
 
-    lvgl_spi_driver_init(TFT_SPI_HOST,
+    bool spi_init_result = lvgl_spi_driver_init(TFT_SPI_HOST,
         DISP_SPI_MISO, DISP_SPI_MOSI, DISP_SPI_CLK,
         SPI_BUS_MAX_TRANSFER_SZ, 1,
         DISP_SPI_IO2, DISP_SPI_IO3);
+        
+    if (spi_init_result) {
+        ESP_LOGI(TAG, "SPI主机初始化成功");
+    } else {
+        ESP_LOGE(TAG, "SPI主机初始化失败");
+    }
 
+    ESP_LOGI(TAG, "添加显示SPI设备...");
     disp_spi_add_device(TFT_SPI_HOST);
+    ESP_LOGI(TAG, "显示SPI设备添加完成");
 
+    ESP_LOGI(TAG, "初始化显示驱动...");
     disp_driver_init();
+    ESP_LOGI(TAG, "显示驱动初始化完成");
 #elif defined (CONFIG_LV_I2C_DISPLAY)
+    ESP_LOGI(TAG, "使用I2C协议初始化显示控制器");
     disp_driver_init();
 #else
 #error "No protocol defined for display controller"
@@ -175,7 +190,7 @@ bool lvgl_spi_driver_init(int host,
     };
 
     ESP_LOGI(TAG, "Initializing SPI bus...");
-    #if defined (CONFIG_IDF_TARGET_ESP32C3)
+    #if defined (CONFIG_IDF_TARGET_ESP32C3) || defined (CONFIG_IDF_TARGET_ESP32S3)
     dma_channel = SPI_DMA_CH_AUTO;
     #endif
     esp_err_t ret = spi_bus_initialize(host, &buscfg, (spi_dma_chan_t)dma_channel);

@@ -113,7 +113,8 @@ void disp_spi_add_device_config(spi_host_device_t host, spi_device_interface_con
 
 void disp_spi_add_device(spi_host_device_t host)
 {
-    disp_spi_add_device_with_speed(host, SPI_TFT_CLOCK_SPEED_HZ);
+    // 降低SPI时钟频率从80MHz到20MHz以解决花屏问题
+    disp_spi_add_device_with_speed(host, 20000000); // 20MHz instead of SPI_TFT_CLOCK_SPEED_HZ
 }
 
 void disp_spi_add_device_with_speed(spi_host_device_t host, int clock_speed_hz)
