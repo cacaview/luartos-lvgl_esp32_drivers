@@ -9,7 +9,7 @@
 #include "sdkconfig.h"
 #include "lvgl_helpers.h"
 #include "esp_log.h"
-
+ 
 #include "lvgl_tft/disp_spi.h"
 #include "lvgl_touch/tp_spi.h"
 
@@ -131,16 +131,16 @@ void lvgl_driver_init(void)
 
 /* Touch controller initialization */
 #if CONFIG_LV_TOUCH_CONTROLLER != TOUCH_CONTROLLER_NONE
-    #if defined (CONFIG_LV_TOUCH_DRIVER_PROTOCOL_SPI)
+#if defined (CONFIG_LV_TOUCH_DRIVER_PROTOCOL_SPI)
         ESP_LOGI(TAG, "Initializing SPI master for touch");
-
+ 
         lvgl_spi_driver_init(TOUCH_SPI_HOST,
             TP_SPI_MISO, TP_SPI_MOSI, TP_SPI_CLK,
             0 /* Defaults to 4094 */, 2,
             -1, -1);
-
+ 
         tp_spi_add_device(TOUCH_SPI_HOST);
-
+ 
         touch_driver_init();
     #elif defined (CONFIG_LV_I2C_TOUCH)
         touch_driver_init();
@@ -154,6 +154,8 @@ void lvgl_driver_init(void)
 #else
 #endif
 }
+
+
 
 
 /* Initialize spi bus master
@@ -198,4 +200,22 @@ bool lvgl_spi_driver_init(int host,
     assert(ret == ESP_OK);
 
     return ESP_OK != ret;
+}
+
+/**********************
+ *    PSRAM ALLOC
+ **********************/
+void *lvgl_psram_malloc(size_t size)
+{
+    return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+}
+
+void lvgl_psram_free(void *ptr)
+{
+    heap_caps_free(ptr);
+}
+
+void *lvgl_psram_realloc(void *ptr, size_t size)
+{
+    return heap_caps_realloc(ptr, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 }

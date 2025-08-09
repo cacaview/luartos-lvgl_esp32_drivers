@@ -104,6 +104,13 @@ bool lvgl_spi_driver_init(int host, int miso_pin, int mosi_pin, int sclk_pin,
  *      MACROS
  **********************/
 
+/**********************
+ *    PSRAM ALLOC
+ **********************/
+void *lvgl_psram_malloc(size_t size);
+void lvgl_psram_free(void *ptr);
+void *lvgl_psram_realloc(void *ptr, size_t size);
+
 
 #ifdef __cplusplus
 } /* extern "C" */
